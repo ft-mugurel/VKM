@@ -19,4 +19,3 @@ module_exit(vuln_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("MTU");
 MODULE_DESCRIPTION("KM");
-
