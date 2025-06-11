@@ -1,6 +1,11 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/moduleparam.h>
+
+int param = 0;
+
+module_param(param, int, S_IRUSR | S_IWUSR);
 
 static int __init vuln_init(void)
 {

@@ -3,7 +3,7 @@ obj-m += vulndrv.o
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD  := $(shell pwd)
 
-runwm: 
+run_qemu: 
 	qemu-system-x86_64 \
 		-m 2G \
 		-smp 2 \
@@ -17,13 +17,13 @@ runwm:
 		-pidfile vm.pid \
 		2>&1 | tee vm.log
 
-build:
-	$(MAKE) -C ./src
+build_module:
+	$(MAKE) -C ./src/module/
 
-clean:
-	$(MAKE) clean -C ./src
+clean_module:
+	$(MAKE) clean -C ./src/module/
 
-sendtowm:
+send_to_qemu:
 	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r $(FILE) root@localhost:
 
 loadmodule:
@@ -34,5 +34,5 @@ unloadmodule:
 	@ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost 'rmmod vulndrv; dmesg | grep vulndrv | tail'
 
 
-sshwm:
+ssh_qemu:
 	 ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
