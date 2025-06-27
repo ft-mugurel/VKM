@@ -4,7 +4,7 @@ KDIR := /lib/modules/$(shell uname -r)/build
 PWD  := $(shell pwd)
 
 run_qemu: 
-	qemu-system-x86_64 \
+	sudo qemu-system-x86_64 \
 		-m 2G \
 		-smp 2 \
 		-kernel linux/arch/x86/boot/bzImage \
@@ -15,7 +15,10 @@ run_qemu:
 		-enable-kvm \
 		-nographic \
 		-pidfile vm.pid \
+		-usb \
+		-device usb-host,vendorid=0x1a86,productid=0x7523 \
 		2>&1 | tee vm.log
+
 
 build_module:
 	$(MAKE) -C ./src/module/
@@ -27,7 +30,7 @@ send_to_qemu:
 	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r $(FILE) root@localhost:
 
 loadmodule:
-	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r ./src/vulndrv.ko root@localhost:
+	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r ./src/module/build/vulndrv.ko root@localhost:
 	@ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost 'insmod /root/vulndrv.ko; dmesg | grep vulndrv | tail'
 
 unloadmodule:

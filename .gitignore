@@ -4,3 +4,5 @@ image/
 linux/
 
 vm.log
+
+vm.pid
