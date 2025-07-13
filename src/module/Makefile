@@ -1,15 +1,22 @@
-obj-m += vulndrv.o
+obj-m := vulndrv.o
+
+vulndrv-objs := chrdev.o usbdev.o
+
 
 KDIR := ../../linux/
 PWD  := $(shell pwd)
-BUILD_DIR := $(PWD)/build
 
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
-	mkdir -p $(BUILD_DIR)
-	mv *.o *.ko *.mod.c Module.symvers modules.order $(BUILD_DIR)
 
 clean:
-	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	rm -rf $(BUILD_DIR)
+	rm -f *.o *.ko *.mod.* *.symvers *.order
+
+load: all
+	sudo insmod vulndrv.ko
+	dmesg | grep vulndrv | tail
+
+unload:
+	sudo rmmod vulndrv
+	dmesg | grep vulndrv | tail
 

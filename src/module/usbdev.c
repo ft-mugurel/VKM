@@ -1,12 +1,12 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
 #include "vulndrv.h"
 
 static struct usb_device_id arduino_table[] = {
     { USB_DEVICE(USB_ARDUINO_VENDOR_ID, USB_ARDUINO_PRODUCT_ID) },
     {} 
 };
+
 MODULE_DEVICE_TABLE(usb, arduino_table);
+
 
 static int arduino_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
@@ -16,10 +16,13 @@ static int arduino_probe(struct usb_interface *interface, const struct usb_devic
     struct usb_arduino *dev;
     int i, retval;
 
+		chrdev_init();
+
     dev = kzalloc(sizeof(struct usb_arduino), GFP_KERNEL);
     if (!dev) return -ENOMEM;
 
     dev->udev = usb_get_dev(udev);
+		dev->bulk_in_buffer = NULL;
     dev->interface = interface;
 
     iface_desc = interface->cur_altsetting;
@@ -70,6 +73,7 @@ static void arduino_disconnect(struct usb_interface *interface)
 {
     struct usb_arduino *dev;
 
+		chrdev_exit();
     dev = usb_get_intfdata(interface);
     usb_set_intfdata(interface, NULL);
 

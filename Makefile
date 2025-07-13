@@ -30,7 +30,7 @@ send_to_qemu:
 	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r $(FILE) root@localhost:
 
 loadmodule:
-	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r ./src/module/build/vulndrv.ko root@localhost:
+	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 -r ./src/module/vulndrv.ko root@localhost:
 	@ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost 'insmod /root/vulndrv.ko; dmesg | grep vulndrv | tail'
 
 unloadmodule:
