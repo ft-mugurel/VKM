@@ -33,6 +33,7 @@ CONFIG_DEBUG_INFO_DWARF4=y
 # Memory bug detector
 CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
+CONFIG_KASAN_MULTI_SHOT=y
 
 # Required for Debian Stretch and later
 CONFIG_CONFIGFS_FS=y
@@ -41,7 +42,7 @@ CONFIG_SECURITYFS=y
 
 Or just run the following command:
 ``` bash
-echo -e "\nCONFIG_KCOV=y\nCONFIG_DEBUG_INFO_DWARF4=y\nCONFIG_KASAN=y\nCONFIG_KASAN_INLINE=y\nCONFIG_CONFIGFS_FS=y\nCONFIG_SECURITYFS=y" >> .config
+echo -e "\nCONFIG_KCOV=y\nCONFIG_DEBUG_INFO_DWARF4=y\nCONFIG_KASAN=y\nCONFIG_KASAN_INLINE=y\nCONFIG_KASAN_MULTI_SHOT=y\nCONFIG_CONFIGFS_FS=y\nCONFIG_SECURITYFS=y" >> .config
 ```
 
 After that you need to run this command to update the configuration:
@@ -87,7 +88,7 @@ make unloadmodule
 ## Heap buffer overflow
 - The channel count wil be readed and stored in a int variable, but there is no check for the size of the channel count, and it is not unsined int and can be negative, if the channel count is smaller then the actual channels it will couse a heap buffer overflow.
 ## Use after free
-- When the device is connected, there will be magic number for security, but if the device is send reset command it will be freed, and if we dont send the magic number again, it will read the freed memory and couse a use after free.
+- When the device is connected, there will be key for security, but if the device is send reset command it will be freed, and if we don't send the key again, it will read the freed memory and couse a use after free.
 ## Double free
 - If after reset command send we call it again it will couse a double free, because the device is already freed.
 ## Integer overflow

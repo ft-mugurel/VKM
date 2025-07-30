@@ -14,11 +14,12 @@ void setup() {
   Serial.print("3\n");
   delay(1000);
   Serial.print("done\n");
-  delay(1000);
 
   Serial.print("reset\n");
   delay(1000);
-  Serial.print("reset\n");
+  Serial.print("key\n");
+  delay(1000);
+  Serial.print("vulndrv\n");
   delay(1000);
   Serial.print("pname\n");
   delay(1000);
