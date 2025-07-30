@@ -3,6 +3,7 @@
 
 # include <linux/module.h>
 # include <linux/kernel.h>
+# include <linux/mutex.h>
 
 // For USB device handling
 
@@ -11,6 +12,10 @@
 #define USB_ARDUINO_VENDOR_ID  0x1a86
 #define USB_ARDUINO_PRODUCT_ID 0x7523
 #define BULK_BUFFER_SIZE 64
+
+#define DATA_BUF_SIZE 64
+extern char latest_data[DATA_BUF_SIZE];
+static DEFINE_MUTEX(char_dev_mutex);
 
 struct usb_arduino {
 		struct usb_device *udev;

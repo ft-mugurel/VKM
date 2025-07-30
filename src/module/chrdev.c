@@ -7,22 +7,23 @@ static int major;
 static struct class *cls;
 static struct device *dev;
 
-static ssize_t my_read(struct file *filp, char __user *buf, size_t len, loff_t *offset)
+static ssize_t my_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
-		const char *msg = "hello from kernel\n";
-		size_t msg_len = strlen(msg);
+    if (*ppos > 0)
+        return 0;
 
-		if (*offset >= msg_len)
-				return 0;  // zaten okunduysa tekrar verme
+    mutex_lock(&char_dev_mutex);
+    size_t len = strnlen(latest_data, DATA_BUF_SIZE);
+    if (len > count)
+        len = count;
+    if (copy_to_user(buf, latest_data, len)) {
+        mutex_unlock(&char_dev_mutex);
+        return -EFAULT;
+    }
+    mutex_unlock(&char_dev_mutex);
 
-		if (len > msg_len - *offset)
-				len = msg_len - *offset;
-
-		if (copy_to_user(buf, msg + *offset, len))
-				return -EFAULT;
-
-		*offset += len;
-		return len;
+    *ppos += len;
+    return len;
 }
 
 static ssize_t my_write(struct file *filp, const char __user *user_buf, size_t len, loff_t *off)
@@ -54,7 +55,7 @@ int  chrdev_init(void)
 				unregister_chrdev(major, DEVICE_NAME);
 				return PTR_ERR(dev);
 		}
-		printk(KERN_INFO "vulndrv: registered with major number %d\n", major);
+		printk(KERN_INFO "Vulndrv: registered with major number %d\n", major);
 		return 0;
 }
 
