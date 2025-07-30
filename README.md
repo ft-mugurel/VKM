@@ -81,19 +81,17 @@ This will upload the module in to qemu and load it into the kernel.
 make unloadmodule
 ```
 
-# What is kernel module?
-- A kernel module is a piece of code that can be loaded into the kernel at runtime, allowing for dynamic extension of the kernel's functionality.
-
-
-# stack buffer overflow [x]
--  stack boffer overflow happens when the product name readed in to a fixt lengt buffer is longer than the buffer size, causing the overflow of the stack memory.
-# heap buffer overflow
-- the channel count wil be readed and stored in a int variable, but there is no check for the size of the channel count, and it is not unsined int and can be negative, if the channel count is smaller then the actual channels it will couse a heap buffer overflow.
-# use after free
+# Vulnerabilities in the VKM module
+## Stack buffer overflow [x]
+- Stack boffer overflow happens when the product name readed in to a fixt lengt buffer is longer than the buffer size, causing the overflow of the stack memory.
+## Heap buffer overflow
+- The channel count wil be readed and stored in a int variable, but there is no check for the size of the channel count, and it is not unsined int and can be negative, if the channel count is smaller then the actual channels it will couse a heap buffer overflow.
+## Use after free
 - When the device is connected, there will be magic number for security, but if the device is send reset command it will be freed, and if we dont send the magic number again, it will read the freed memory and couse a use after free.
-#  double free
-# integer overflow
-- there is no limit to channel count it will couse the integer overflow, if the channel count is bigger then the max value of the int, it will couse the integer overflow.
-# integer underflow
-- there is no limit to channel count it will couse the integer underflow, if the channel count is smaller then the min value of the int, it will couse the integer underflow.
+## Double free
+- If after reset command send we call it again it will couse a double free, because the device is already freed.
+## Integer overflow
+- There is no limit to channel count it will couse the integer overflow, if the channel count is bigger then the max value of the int, it will couse the integer overflow.
+## Integer underflow
+- There is no limit to channel count it will couse the integer underflow, if the channel count is smaller then the min value of the int, it will couse the integer underflow.
 
