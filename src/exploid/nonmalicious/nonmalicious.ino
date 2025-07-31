@@ -18,7 +18,20 @@ void setup() {
 }
 
 void loop() {
-  //random(1,4);
-  Serial.print("120, 80, 1\n");
+  int x;
+  int y;
+  int z;
+
+  x = random(-1024, 1024);
+  y = random(-1024, 1024);
+  z = random(-1024, 1024);
+
+  Serial.print(" ");
+  Serial.print(x);
+  Serial.print(", ");
+  Serial.print(y);
+  Serial.print(", ");
+  Serial.println(z);
+
   delay(1000);
 }
