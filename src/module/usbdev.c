@@ -101,7 +101,6 @@ static int setup_device(struct usb_arduino *dev)
 						printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
 						break;
 				}
-				printk(KERN_INFO "Vulndrv: Received data: %s\n", dev->bulk_in_buffer);
 				if (strcmp(dev->bulk_in_buffer, "done") == 0) {
 						printk(KERN_INFO "Vulndrv: Device initialization complete\n");
 						break;
@@ -125,11 +124,6 @@ static int setup_device(struct usb_arduino *dev)
 								kfree(sended_key);
 								break;
 						} 
-				} else if (strcmp(dev->bulk_in_buffer, "reset") == 0) {
-						kfree(sended_key);
-						printk(KERN_INFO "Vulndrv: Resetting device\n");
-						setup_device(dev);
-						break;
 				} else if (strcmp(dev->bulk_in_buffer, "pname") == 0) {
 						if ((sended_key != 0) && (strcmp(sended_key, "vulndrv") == 0))
 						{
@@ -145,6 +139,7 @@ static int setup_device(struct usb_arduino *dev)
 				} else if (strcmp(dev->bulk_in_buffer, "ccount") == 0) {
 						retval = read_data_from_device(dev, 0);
 						channel_count = simple_strtol(dev->bulk_in_buffer, NULL, 10); 
+						printk(KERN_INFO "Vulndrv: Channel count %d\n", channel_count);
 						channels = kmalloc(channel_count * sizeof(char*), GFP_KERNEL);
 						if (!channels) {
 								printk(KERN_ERR "Vulndrv: Memory allocation failed for channels\n");
@@ -154,10 +149,8 @@ static int setup_device(struct usb_arduino *dev)
 								printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
 								break;
 						}
-						printk(KERN_INFO "Vulndrv: Chanel count %s\n", dev->bulk_in_buffer);
 				} 
 		}
-		printk(KERN_INFO "Vulndrv: Device setup complete\n");
 		return retval;
 }
 
