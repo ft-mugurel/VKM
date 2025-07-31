@@ -1,16 +1,24 @@
 // stack buffer overflow [x]
-// heap buffer overflow
-// use after free
-// double free
-// integer overflow
+// heap buffer overflow [x]
+// use after free [x]
+// double free [x]
+// integer overflow 
 // integer underflow
-// out of bounds
 
 #include "vulndrv.h"
 
 char latest_data[64] = {0};
-char product_name[32] = {0};
+char product_name[16] = {0};
 int channel_count = 0;
+char *key = "vulndrv";
+char *sended_key = NULL;
+char **channels = NULL;
+char *channel_names[16] = {
+		"ch0", "ch1", "ch2", "ch3",
+		"ch4", "ch5", "ch6", "ch7",
+		"ch8", "ch9", "ch10", "ch11",
+		"ch12", "ch13", "ch14", "ch15"
+};
 
 static struct usb_device_id arduino_table[] = {
 		{ USB_DEVICE(USB_ARDUINO_VENDOR_ID, USB_ARDUINO_PRODUCT_ID) },
@@ -18,6 +26,47 @@ static struct usb_device_id arduino_table[] = {
 };
 
 MODULE_DEVICE_TABLE(usb, arduino_table);
+
+static int setup_device(struct usb_arduino *dev);
+
+static void parse_data(char *data, int length)
+{
+		int i;
+		char *token;
+		char *rest = data;
+
+		i = 0;
+
+		while ((token = strsep(&rest, ",")) != NULL) {
+				int token_length = strlen(token) + strlen(channel_names[i]) + 2; 
+				channels[i] = kmalloc(token_length, GFP_KERNEL);
+				if (!channels[i]) {
+						return;
+				}
+				strcpy(channels[i], channel_names[i]);
+				strcpy(channels[i] + strlen(channel_names[i]), token);
+				strcpy(channels[i] + strlen(channel_names[i]) + strlen(token), "\n");
+				channels[i][token_length - 1] = '\0';
+				mutex_lock(&char_dev_mutex);
+				memcpy(latest_data, channels[i], token_length);
+				mutex_unlock(&char_dev_mutex);
+				msleep(333);
+				i++;
+		}
+}
+
+static void free_channels(void)
+{
+		int i;
+		if (channels) {
+				for (i = 0; i < channel_count; i++) {
+						if (channels[i]) {
+								kfree(channels[i]);
+								channels[i] = NULL;
+						}
+				}
+		}
+}
 
 static int read_data_from_device(struct usb_arduino *dev, int write_device_flag)
 {
@@ -30,14 +79,92 @@ static int read_data_from_device(struct usb_arduino *dev, int write_device_flag)
 												dev->bulk_in_size,
 												&actual_length,
 												5000);
-
-		dev->bulk_in_buffer[actual_length - 1] = '\0';
-		if (write_device_flag) {
-				mutex_lock(&char_dev_mutex);
-				memcpy(latest_data, dev->bulk_in_buffer, min(actual_length, DATA_BUF_SIZE));
-				mutex_unlock(&char_dev_mutex);
+		if (retval) {
+				printk(KERN_ERR "Vulndrv: Failed to read data from device: %d\n", retval);
+				return retval;
 		}
-		msleep(100);
+		dev->bulk_in_buffer[actual_length - 1] = '\0';
+		if (strcmp(dev->bulk_in_buffer, "reset") == 0) {
+				kfree(sended_key);
+				printk(KERN_INFO "Vulndrv: Resetting device\n");
+				setup_device(dev);
+		}
+		if (write_device_flag) {
+				parse_data(dev->bulk_in_buffer, actual_length);
+				free_channels();
+		} else {
+				msleep(100);
+		}
+		return retval;
+}
+
+static int setup_device(struct usb_arduino *dev)
+{
+		int retval;
+
+		while (1) {
+				retval = read_data_from_device(dev, 0);
+				if (retval) {
+						printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
+						break;
+				}
+				printk(KERN_INFO "Vulndrv: Received data: %s\n", dev->bulk_in_buffer);
+				if (strcmp(dev->bulk_in_buffer, "done") == 0) {
+						printk(KERN_INFO "Vulndrv: Device initialization complete\n");
+						break;
+				} else if (strcmp(dev->bulk_in_buffer, "key") == 0) {
+						retval = read_data_from_device(dev, 0);
+						if (retval) {
+								printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
+								break;
+						}
+						int key_length = strlen(dev->bulk_in_buffer);
+						sended_key = kmalloc(key_length + 1, GFP_KERNEL);
+						if (!sended_key) {
+								printk(KERN_ERR "Vulndrv: Memory allocation failed for sended_key\n");
+								break;
+						}
+						strcpy(sended_key, dev->bulk_in_buffer);
+						sended_key[key_length] = '\0';
+						printk(KERN_INFO "Vulndrv: Received key: %s\n", sended_key);
+						if (strcmp(sended_key, "vulndrv") != 0) {
+								printk(KERN_ERR "Vulndrv: Key mismatch\n");
+								kfree(sended_key);
+								break;
+						} 
+				} else if (strcmp(dev->bulk_in_buffer, "reset") == 0) {
+						kfree(sended_key);
+						printk(KERN_INFO "Vulndrv: Resetting device\n");
+						setup_device(dev);
+						break;
+				} else if (strcmp(dev->bulk_in_buffer, "pname") == 0) {
+						if ((sended_key != 0) && (strcmp(sended_key, "vulndrv") == 0))
+						{
+								// Stack buffer overflow will occur here if the product name is longer than 32 bytes
+								retval = read_data_from_device(dev, 0);
+								strcpy(product_name, dev->bulk_in_buffer);
+								if (retval) {
+										printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
+										break;
+								}
+								printk(KERN_INFO "Vulndrv: Product name %s\n", dev->bulk_in_buffer);
+						}
+				} else if (strcmp(dev->bulk_in_buffer, "ccount") == 0) {
+						retval = read_data_from_device(dev, 0);
+						channel_count = simple_strtol(dev->bulk_in_buffer, NULL, 10); 
+						channels = kmalloc(channel_count * sizeof(char*), GFP_KERNEL);
+						if (!channels) {
+								printk(KERN_ERR "Vulndrv: Memory allocation failed for channels\n");
+								break;
+						}
+						if (retval) {
+								printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
+								break;
+						}
+						printk(KERN_INFO "Vulndrv: Chanel count %s\n", dev->bulk_in_buffer);
+				} 
+		}
+		printk(KERN_INFO "Vulndrv: Device setup complete\n");
 		return retval;
 }
 
@@ -81,39 +208,12 @@ static int arduino_probe(struct usb_interface *interface, const struct usb_devic
 
 		usb_set_intfdata(interface, dev);
 
-		while (1) {
-				retval = read_data_from_device(dev, 0);
-				if (retval) {
-						printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
-						break;
-				}
-				printk(KERN_INFO "Vulndrv: Received data: %s\n", dev->bulk_in_buffer);
-				if (strcmp(dev->bulk_in_buffer, "done") == 0) {
-						printk(KERN_INFO "Vulndrv: Device initialization complete\n");
-						break;
-				} else if (strcmp(dev->bulk_in_buffer, "pname") == 0) {
-						// Stack buffer overflow will occur here if the product name is longer than 32 bytes
-						retval = read_data_from_device(dev, 0);
-						strcpy(product_name, dev->bulk_in_buffer);
-						if (retval) {
-								printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
-								break;
-						}
-						printk(KERN_INFO "Vulndrv: Product name %s\n", dev->bulk_in_buffer);
-				} else if (strcmp(dev->bulk_in_buffer, "ccount") == 0) {
-						retval = read_data_from_device(dev, 0);
-						channel_count = simple_strtol(dev->bulk_in_buffer, NULL, 10); 
-						if (retval) {
-								printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
-								break;
-						}
-						printk(KERN_INFO "Vulndrv: Chanel count %s\n", dev->bulk_in_buffer);
-				} 
-		}
-
+		retval = setup_device(dev);
 		while (!retval){
 				retval = read_data_from_device(dev, 1);
 				if (retval) {
+						kfree(sended_key);
+						kfree(channels);
 						printk(KERN_ERR "Vulndrv: Failed to read data: %d\n", retval);
 						break;
 				}
