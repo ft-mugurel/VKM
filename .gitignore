@@ -7,3 +7,21 @@ linux/
 vm.log
 
 vm.pid
+
+src/module/.vulndrv.o.cmd
+
+src/module/.chrdev.o.cmd
+
+src/module/.Module.symvers.cmd
+
+src/module/.modules.order.cmd
+
+src/module/.usbdev.o.cmd
+
+src/module/.vulndrv.ko.cmd
+
+src/module/.vulndrv.mod.cmd
+
+src/module/.vulndrv.mod.o.cmd
+
+src/module/vulndrv.mod
