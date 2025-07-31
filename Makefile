@@ -36,6 +36,10 @@ loadmodule: build_module
 unloadmodule:
 	@ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost 'rmmod vulndrv; dmesg | grep vulndrv | tail'
 
+get_dmesg:
+	@ssh -i ./image/bullseye.id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost './create_kasan_report.sh'
+	@scp -i $(shell pwd)/image/bullseye.id_rsa -P 10021 root@localhost:~/kasan_report.txt .
+
 reloadmodule: unloadmodule loadmodule
 
 ssh_qemu:
