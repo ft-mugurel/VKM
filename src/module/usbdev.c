@@ -1,10 +1,3 @@
-// stack buffer overflow [x]
-// heap buffer overflow [x]
-// use after free [x]
-// double free [x]
-// integer overflow 
-// integer underflow
-
 #include "vulndrv.h"
 
 char latest_data[64] = {0};
